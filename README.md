@@ -1,4 +1,4 @@
 Hosts-Editor
 ============
 
-A hosts file editor for Android.
+> #### NOT FINISHED YET.

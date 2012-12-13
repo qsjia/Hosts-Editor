@@ -1,0 +1,13 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/menu_remote_add"
+        android:title="@string/menu_add"
+        android:orderInCategory="100"
+        android:icon="@android:drawable/ic_menu_add"
+        android:showAsAction="ifRoom|withText" />
+    <item android:id="@+id/menu_remote_search"
+        android:actionViewClass="android.widget.SearchView"
+        android:icon="@android:drawable/ic_menu_search"
+        android:orderInCategory="100"
+        android:showAsAction="ifRoom|collapseActionView"
+        android:title="@string/menu_search"/>
+</menu>
