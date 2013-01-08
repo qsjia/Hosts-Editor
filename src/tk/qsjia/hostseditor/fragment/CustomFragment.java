@@ -6,7 +6,12 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.util.SparseBooleanArray;
+import android.widget.*;
 import tk.qsjia.hostseditor.R;
+import tk.qsjia.hostseditor.util.DBHelper;
 import tk.qsjia.hostseditor.util.HostsUtils;
 import android.app.AlertDialog;
 import android.app.SearchManager;
@@ -24,66 +29,105 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
-import android.widget.BaseAdapter;
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.Filter;
-import android.widget.Filterable;
-import android.widget.ListView;
-import android.widget.SearchView;
-import android.widget.SimpleAdapter;
-import android.widget.TextView;
 
 public class CustomFragment extends ListFragment implements SearchView.OnQueryTextListener {
 
-	private hostsListAdapter adapter = null;
 	private String preQueryString = "";
-	private List<Map<String, String>> items;
-	private List<Map<String, String>> savedItems;
-	private List<String> selectedIds = new ArrayList<String>();
+	private DBHelper helper;
+	private SimpleCursorAdapter adapter;
+	private Cursor cursor;
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
 		this.setHasOptionsMenu(true);
-		new LoadDataTask().execute();
+		helper = new DBHelper(getActivity());
+		cursor = helper.getReadableDatabase().query(
+				DBHelper.CUSTOM_TABLE_NAME,
+				new String[] { "_id", "ip", "host", "used" }, null, null, null, null, null);
+		adapter = new SimpleCursorAdapter(getActivity(),
+				R.layout.hosts_list_item, cursor, new String[] { "ip",
+				"host" }, new int[] {
+				R.id.item_ip, R.id.item_host },
+				SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
+		adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
+
+			@Override
+			public boolean setViewValue(View view, Cursor cursor,
+										int columnIndex) {
+				if ("ip".equals(cursor.getColumnName(columnIndex))) {
+					CheckBox checkBox = (CheckBox) view;
+					checkBox.setText(cursor.getString(columnIndex));
+					if(cursor.getLong(cursor.getColumnIndex("used")) == 1){
+						checkBox.setChecked(true);
+					}else{
+						checkBox.setChecked(false);
+					}
+					return true;
+				}
+				return false;
+			}
+		});
+		//设置过滤
+		adapter.setFilterQueryProvider(new FilterQueryProvider() {
+			@Override
+			public Cursor runQuery(CharSequence constraint) {
+				return helper.getReadableDatabase().query(
+						DBHelper.CUSTOM_TABLE_NAME,
+						new String[]{"_id", "ip", "host", "used"}, "ip like ? or host like ?",
+						new String[]{"%"+constraint+"%", "%"+constraint+"%"}, null, null, null);
+			}
+		});
+		setListAdapter(adapter);
+
 		ListView listView = getListView();
 		listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
 		listView.setMultiChoiceModeListener(new AbsListView.MultiChoiceModeListener(){
 
 			@Override
 			public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
-				long[] ids = getListView().getCheckedItemIds();
-				switch(item.getItemId()){
-					case R.id.menu_edit:
-						final View view = LayoutInflater.from(getActivity()).inflate(
-								R.layout.custom_add_dialog, null);
-						((EditText) view.findViewById(R.id.custom_ip)).setText(items.get((int)ids[0]).get("ip"));
-						((EditText) view.findViewById(R.id.custom_host)).setText(items.get((int)ids[0]).get("host"));
-						new AlertDialog.Builder(getActivity())
-								.setView(view)
-								.setTitle("编辑Host")
-								.setPositiveButton("确定",
-										new DialogInterface.OnClickListener() {
+				final long[] ids = getListView().getCheckedItemIds();
+				if(ids.length>0){
+					switch(item.getItemId()){
+						case R.id.menu_edit:
+							SparseBooleanArray selectedPositions = getListView().getCheckedItemPositions();
+							Cursor selectedItem = null;
+							for(int i = 0;i < selectedPositions.size();i++){
+								if(selectedPositions.valueAt(i)){
+									selectedItem = (Cursor)getListView().getItemAtPosition(selectedPositions.keyAt(i));
+								}
+							}
+							final View view = LayoutInflater.from(getActivity()).inflate(
+									R.layout.custom_add_dialog, null);
+							((EditText) view.findViewById(R.id.custom_ip)).setText(selectedItem.getString(1));
+							((EditText) view.findViewById(R.id.custom_host)).setText(selectedItem.getString(2));
+							new AlertDialog.Builder(getActivity())
+									.setView(view)
+									.setTitle("编辑Host")
+									.setPositiveButton("确定",
+											new DialogInterface.OnClickListener() {
 
-											@Override
-											public void onClick(DialogInterface dialog,
-													int which) {
-												System.out.println(((EditText) view
-														.findViewById(R.id.custom_ip))
-														.getText());
-												System.out.println(((EditText) view
-														.findViewById(R.id.custom_host))
-														.getText());
-											}
-										})
-								.setNegativeButton("取消", null)
-								.show();
-						mode.finish();
-						return true;
-					case R.id.menu_delete:
-						return true;
+												@Override
+												public void onClick(DialogInterface dialog,
+																	int which) {
+													ContentValues values = new ContentValues();
+													values.put("ip", ((EditText) view
+															.findViewById(R.id.custom_ip))
+															.getText().toString());
+													values.put("host", ((EditText) view
+															.findViewById(R.id.custom_host))
+															.getText().toString());
+													helper.getWritableDatabase().update(DBHelper.CUSTOM_TABLE_NAME, values, "_id = ?", new String[]{""+ids[0]});
+													refreshData();
+												}
+											})
+									.setNegativeButton("取消", null)
+									.show();
+							mode.finish();
+							return true;
+						case R.id.menu_delete:
+							return true;
+					}
 				}
 				return true;
 			}
@@ -117,124 +161,7 @@ public class CustomFragment extends ListFragment implements SearchView.OnQueryTe
 			
 		});
 	}
-	
-	class hostsListAdapter extends BaseAdapter implements Filterable{
-		private Context context;
-		private Filter mFilter;
 
-		public hostsListAdapter(Context context) {
-			super();
-			this.context = context;
-		}
-
-		@Override
-		public int getCount() {
-			return items.size();
-		}
-
-		@Override
-		public Object getItem(int position) {
-			return items.get(position);
-		}
-
-		@Override
-		public long getItemId(int position) {
-			return Long.parseLong(items.get(position).get("index"));
-		}
-		
-		@Override
-		public boolean hasStableIds() {
-			return true;
-		}
-
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			ViewHolder holder = null;
-			if(convertView == null){
-				holder = new ViewHolder();
-				convertView = LayoutInflater.from(context).inflate(R.layout.hosts_list_item, null);
-				holder.itemIp = (CheckBox)convertView.findViewById(R.id.item_ip);
-				holder.itemHost = (TextView)convertView.findViewById(R.id.item_host);
-				convertView.setTag(holder);
-			}else{
-				holder = (ViewHolder) convertView.getTag();
-			}
-			holder.itemIp.setText(items.get(position).get("ip"));
-			holder.itemHost.setText(items.get(position).get("host"));
-			holder.itemIp.setChecked(selectedIds.contains(items.get(position).get("index")));
-			convertView.setTag(holder);
-			return convertView;
-		}
-
-		@Override
-		public Filter getFilter() {
-			if(mFilter == null){
-				mFilter = new MyFilter();
-			}
-			return mFilter;
-		}
-		
-		private class MyFilter extends Filter{
-
-			@Override
-			protected FilterResults performFiltering(CharSequence constraint) {
-				FilterResults results = new FilterResults();
-				if(TextUtils.isEmpty(constraint)){
-                    results.values = savedItems;  
-                    results.count = savedItems.size();
-				}else{
-					String filterStr = constraint.toString().toLowerCase(Locale.US);
-					List<Map<String,String>> values = new ArrayList<Map<String,String>>();
-					if(filterStr.length()>preQueryString.length()){
-						for(Map<String,String> item : items){
-							if(item.get("ip").indexOf(filterStr)>=0||item.get("host").indexOf(filterStr)>=0){
-								values.add(item);
-							}
-						}
-					}else{
-						for(Map<String,String> item : savedItems){
-							if(item.get("ip").indexOf(filterStr)>=0||item.get("host").indexOf(filterStr)>=0){
-								values.add(item);
-							}
-						}
-					}
-					results.count = values.size();
-					results.values = values;
-				}
-				return results;
-			}
-
-			@Override
-			protected void publishResults(CharSequence constraint,
-					FilterResults results) {
-				preQueryString = constraint.toString();
-				items = (List<Map<String,String>>)results.values;
-				notifyDataSetChanged();
-			}
-			
-		}
-	}
-
-	class ViewHolder{
-		CheckBox itemIp;
-		TextView itemHost;
-	}
-
-	class LoadDataTask extends AsyncTask<Void, Void, Void>{
-	
-		@Override
-		protected void onPostExecute(Void v) {
-			adapter = new hostsListAdapter(getActivity());
-			setListAdapter(adapter);
-		}
-	
-		@Override
-		protected Void doInBackground(Void... params) {
-			items = HostsUtils.analysisHostsFile(Environment.getExternalStorageDirectory().getPath()+"/tk.qsjia.hostseditor/hosts");
-            savedItems = new ArrayList<Map<String,String>>(items);  
-			return null;
-		}
-	}
 	
 	@Override
 	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -262,12 +189,16 @@ public class CustomFragment extends ListFragment implements SearchView.OnQueryTe
 									@Override
 									public void onClick(DialogInterface dialog,
 											int which) {
-										System.out.println(((EditText) view
+										ContentValues values = new ContentValues();
+										values.put("ip", ((EditText) view
 												.findViewById(R.id.custom_ip))
-												.getText());
-										System.out.println(((EditText) view
+												.getText().toString());
+										values.put("host", ((EditText) view
 												.findViewById(R.id.custom_host))
-												.getText());
+												.getText().toString());
+										values.put("used", "2");
+										helper.getWritableDatabase().insert(DBHelper.CUSTOM_TABLE_NAME, null, values);
+										refreshData();
 									}
 								})
 						.setNegativeButton("取消", null)
@@ -282,19 +213,32 @@ public class CustomFragment extends ListFragment implements SearchView.OnQueryTe
 	public void onListItemClick(ListView l, View v, int position, long id) {
 		super.onListItemClick(l, v, position, id);
 		CheckBox checkBox = (CheckBox)v.findViewById(R.id.item_ip);
-		if(checkBox.isChecked()){
+		ContentValues values = new ContentValues();
+		if (checkBox.isChecked()) {
 			checkBox.setChecked(false);
-			selectedIds.remove(items.get(position).get("index"));
-		}else{
+			values.put("used",2);
+			helper.getWritableDatabase().update(DBHelper.CUSTOM_TABLE_NAME, values, "_id = ?", new String[]{id+""});
+		} else {
 			checkBox.setChecked(true);
-			selectedIds.add(items.get(position).get("index"));
+			values.put("used",1);
+			helper.getWritableDatabase().update(DBHelper.CUSTOM_TABLE_NAME, values, "_id = ?", new String[]{id+""});
 		}
+		refreshData();
+	}
+
+	void refreshData(){
+		cursor = helper.getReadableDatabase().query(
+				DBHelper.CUSTOM_TABLE_NAME,
+				new String[] { "_id", "ip", "host", "used" },
+				null, null, null, null, null);
+		adapter.changeCursor(cursor);
+		adapter.notifyDataSetChanged();
 	}
 
 	@Override
 	public boolean onQueryTextChange(String newText) {
 		if(getListAdapter()!=null){
-	        ((hostsListAdapter)getListAdapter()).getFilter().filter(newText);
+	        ((CursorAdapter)getListAdapter()).getFilter().filter(newText);
 		}
 		return true;
 	}

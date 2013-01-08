@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import android.widget.*;
 import tk.qsjia.hostseditor.R;
 import tk.qsjia.hostseditor.util.DBHelper;
 import tk.qsjia.hostseditor.util.NetworkUtils;
@@ -26,13 +27,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AbsListView;
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.SearchView;
 import android.widget.SearchView.OnQueryTextListener;
-import android.widget.SimpleCursorAdapter;
 
 public class RemoteFragment extends ListFragment implements OnQueryTextListener {
 	@Override
@@ -80,6 +75,15 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 				return false;
 			}
 		});
+		adapter.setFilterQueryProvider(new FilterQueryProvider() {
+			@Override
+			public Cursor runQuery(CharSequence constraint) {
+				return helper.getReadableDatabase().query(
+						DBHelper.REMOTE_TABLE_NAME,
+						new String[] { "_id", "url", "local_date", "remote_date",
+								"used" }, "url like ?", new String[]{"%"+constraint+"%"}, null, null, null);
+			}
+		});
 		setListAdapter(adapter);
 		ListView listView = this.getListView();
 		listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE_MODAL);
@@ -100,13 +104,7 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 								whereStr.toString().substring(0,
 										whereStr.length() - 1)
 										+ ")", null);
-						cursor = helper.getReadableDatabase().query(
-								DBHelper.REMOTE_TABLE_NAME,
-								new String[] { "_id", "url", "local_date",
-										"remote_date", "used" }, null, null,
-								null, null, null);
-						adapter.changeCursor(cursor);
-						adapter.notifyDataSetChanged();
+						refreshData();
 						return true;
 					case R.id.menu_edit:
 						final EditText urlEditText = new EditText(getActivity());
@@ -226,10 +224,22 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 		}
 	}
 
+	void refreshData(){
+		cursor = helper.getReadableDatabase().query(
+				DBHelper.REMOTE_TABLE_NAME,
+				new String[] { "_id", "url", "local_date",
+						"remote_date", "used" }, null, null,
+				null, null, null);
+		adapter.changeCursor(cursor);
+		adapter.notifyDataSetChanged();
+	}
+
 	@Override
-	public boolean onQueryTextChange(String arg0) {
-		// TODO Auto-generated method stub
-		return false;
+	public boolean onQueryTextChange(String newText) {
+		if(getListAdapter()!=null){
+			((CursorAdapter)getListAdapter()).getFilter().filter(newText);
+		}
+		return true;
 	}
 
 	@Override
@@ -270,12 +280,7 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 				}else{
 					helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id});
 				}
-				cursor = helper.getReadableDatabase().query(
-						DBHelper.REMOTE_TABLE_NAME,
-						new String[] { "_id", "url", "local_date", "remote_date", "used" },
-						null, null, null, null, null);
-				adapter.changeCursor(cursor);
-				adapter.notifyDataSetChanged();
+				refreshData();
 			}
 		}
 

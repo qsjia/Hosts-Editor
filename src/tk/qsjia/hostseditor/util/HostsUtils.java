@@ -1,15 +1,6 @@
 package tk.qsjia.hostseditor.util;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,53 +17,39 @@ import android.os.Environment;
  * To change this template use File | Settings | File Templates.
  */
 public class HostsUtils {
-	public static List<Map<String,String>> analysisHostsFile(String file){
-		List<Map<String,String>> list = new ArrayList<Map<String, String>>();
+	public static List<Map<String, String>> analysisHostsFile(File file) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
 		try {
-			BufferedReader reader = new BufferedReader(new FileReader(file));
-			String tmp = null;
-			int index = 0;
-			while((tmp = reader.readLine()) != null){
-				if(!tmp.startsWith("#")){
-					String[] datas = tmp.split("\\s+");
-					int j = datas.length;
-					if(j>=2){
-						for(int i = 1;i < datas.length;i++){
-							Map<String,String> map = new HashMap<String, String>();
-							map.put("ip",datas[0]);
-							map.put("host",datas[i].toLowerCase(Locale.US));
-							map.put("index", index+"");
-							list.add(map);
-							index++;
-						}
-					}
-				}
+			if (file != null && file.exists()) {
+				list = analysisHostsFromStream(new FileInputStream(file));
 			}
-			reader.close();
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
+		} finally {
+			return list;
 		}
-		return list;
 	}
-	
-	public static List<Map<String,String>> analysisHostsFromStream(InputStream in){
-		List<Map<String,String>> list = new ArrayList<Map<String, String>>();
+
+	public static List<Map<String, String>> analysisHostsFile(String file) {
+		return analysisHostsFile(new File(file));
+	}
+
+	public static List<Map<String, String>> analysisHostsFromStream(InputStream in) {
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
 		try {
 			BufferedReader reader = new BufferedReader(new InputStreamReader(in));
-			String tmp = null;
+			String tmp;
 			int index = 0;
-			while((tmp = reader.readLine()) != null){
-				if(!tmp.startsWith("#")){
+			while ((tmp = reader.readLine()) != null) {
+				if (!tmp.startsWith("#")) {
 					String[] datas = tmp.split("\\s+");
 					int j = datas.length;
-					if(j>=2){
-						for(int i = 1;i < datas.length;i++){
-							Map<String,String> map = new HashMap<String, String>();
-							map.put("ip",datas[0]);
-							map.put("host",datas[i].toLowerCase(Locale.US));
-							map.put("index", index+"");
+					if (j >= 2) {
+						for (int i = 1; i < datas.length; i++) {
+							Map<String, String> map = new HashMap<String, String>();
+							map.put("ip", datas[0]);
+							map.put("host", datas[i].toLowerCase(Locale.US));
+							map.put("index", index + "");
 							list.add(map);
 							index++;
 						}
@@ -89,11 +66,13 @@ public class HostsUtils {
 		return list;
 	}
 
-	public static void makeHostsFile(List<Map<String,String>> data){
+	public static File makeHostsFile(List<Map<String, String>> data, String dirName) {
+		File file = null;
 		try {
-			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter("d:\\hosts.tmp.txt")));
-			for(int i=0,j=data.size();i<j;i++){
-				writer.print(data.get(i).get("ip")+"\t");
+			file = File.createTempFile("hosts", "", new File(dirName));
+			PrintWriter writer = new PrintWriter(new BufferedWriter(new FileWriter(file)));
+			for (int i = 0, j = data.size(); i < j; i++) {
+				writer.print(data.get(i).get("ip") + "\t");
 				writer.println(data.get(i).get("host"));
 			}
 			writer.flush();
@@ -101,11 +80,13 @@ public class HostsUtils {
 
 		} catch (IOException e) {
 			e.printStackTrace();
+		} finally {
+			return file;
 		}
 	}
 
-	public static void main(String[] args){
-		makeHostsFile(analysisHostsFile(Environment.getExternalStorageDirectory().getPath()+"/tk.qsjia.hostseditor/hosts"));
-		RootUtils.runCommand(new String[]{"mv /etc/hosts /etc/hosts.bak","mv d:\\hosts.tmp.txt /etc/hosts"},true);
+	public static void main(String[] args) {
+		makeHostsFile(analysisHostsFile(Environment.getExternalStorageDirectory().getPath() + "/tk.qsjia.hostseditor/hosts"), "");
+		RootUtils.runCommand(new String[]{"mv /etc/hosts /etc/hosts.bak", "mv d:\\hosts.tmp.txt /etc/hosts"}, true);
 	}
 }

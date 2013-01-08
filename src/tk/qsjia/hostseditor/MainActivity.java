@@ -1,9 +1,6 @@
 package tk.qsjia.hostseditor;
 
-import tk.qsjia.hostseditor.fragment.CustomFragment;
-import tk.qsjia.hostseditor.fragment.MainFragment;
-import tk.qsjia.hostseditor.fragment.RemoteFragment;
-import tk.qsjia.hostseditor.fragment.SettingFragment;
+import tk.qsjia.hostseditor.fragment.*;
 import android.app.ActionBar;
 import android.app.FragmentTransaction;
 import android.os.Bundle;
@@ -46,7 +43,6 @@ public class MainActivity extends FragmentActivity implements
 		// Create the adapter that will return a fragment for each of the three
 		// primary sections
 		// of the app.
-		//RootUtils.runCommand(new String[]{"mkdir "+Environment.getExternalStorageDirectory().getPath()+"/tk.qsjia.hostseditor","cp -f /etc/hosts "+Environment.getExternalStorageDirectory().getPath()+"/tk.qsjia.hostseditor/"}, true);
 		mSectionsPagerAdapter = new SectionsPagerAdapter(
 				getSupportFragmentManager());
 
@@ -126,7 +122,7 @@ public class MainActivity extends FragmentActivity implements
 					fragment = new CustomFragment();
 					break;
 				case 3:
-					fragment = new SettingFragment();
+					fragment = new CurrentFragment();
 					break;
 			}
 			return fragment;
@@ -141,13 +137,13 @@ public class MainActivity extends FragmentActivity implements
 		public CharSequence getPageTitle(int position) {
 			switch (position) {
 				case 0:
-					return getString(R.string.title_section1).toUpperCase();
+					return getString(R.string.title_section_main).toUpperCase();
 				case 1:
-					return getString(R.string.title_section2).toUpperCase();
+					return getString(R.string.title_section_remote).toUpperCase();
 				case 2:
-					return getString(R.string.title_section3).toUpperCase();
+					return getString(R.string.title_section_custom).toUpperCase();
 				case 3:
-					return getString(R.string.title_section4).toUpperCase();
+					return getString(R.string.title_section_current).toUpperCase();
 			}
 			return null;
 		}

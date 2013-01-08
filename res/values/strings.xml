@@ -1,10 +1,10 @@
 <resources>
     <string name="app_name">Hosts Editor</string>
     <string name="title_activity_main">Hosts Editor</string>
-    <string name="title_section1">概述</string>
-    <string name="title_section2">远程Hosts文件</string>
-    <string name="title_section3">自定义Housts</string>
-    <string name="title_section4">设置</string>
+    <string name="title_section_main">概述</string>
+    <string name="title_section_remote">远程Hosts文件</string>
+    <string name="title_section_custom">自定义Hosts</string>
+    <string name="title_section_current">当前Hosts</string>
     <string name="custom_ip_hint">IP</string>
     <string name="custom_host_hint">Host</string>
     <string name="menu_settings">设置</string>
