@@ -23,4 +23,34 @@
         android:inputType="text"
         android:hint="@string/custom_host_hint" />
 
+	<CheckBox android:id="@+id/use_sequence"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="@string/use_sequence"
+			android:visibility="gone"/>
+	<LinearLayout android:id="@+id/sequence_layout"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="horizontal"
+			android:visibility="gone">
+		<TextView android:layout_width="wrap_content"
+				  android:layout_height="wrap_content"
+				  android:text="序列从 "/>
+		<EditText android:id="@+id/sequence_start"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_weight="2"
+				android:ems="10"
+				android:inputType="text" />
+		<TextView android:layout_width="wrap_content"
+				  android:layout_height="wrap_content"
+				  android:text=" 到 "/>
+		<EditText android:id="@+id/sequence_end"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_weight="2"
+				android:ems="10"
+				android:inputType="text" />
+	</LinearLayout>
+
 </LinearLayout>

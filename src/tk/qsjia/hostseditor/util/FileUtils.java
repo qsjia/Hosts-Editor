@@ -1,7 +1,5 @@
 package tk.qsjia.hostseditor.util;
 
-import java.io.InputStream;
-
 /**
  * Created with IntelliJ IDEA.
  * User: Administrator

@@ -1,11 +1,6 @@
 package tk.qsjia.hostseditor.util;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -15,23 +10,24 @@ import java.io.PrintWriter;
  * To change this template use File | Settings | File Templates.
  */
 public class RootUtils {
-	public static void runCommand(String[] commands, boolean requireRoot){
+	public static int runCommand(String[] commands, boolean requireRoot) {
 		Process process = null;
 		BufferedReader errorReader = null;
 		BufferedReader reader = null;
 		PrintWriter writer = null;
-		try{
-			if(requireRoot){
+		int flag = 0;
+		try {
+			if (requireRoot) {
 				process = Runtime.getRuntime().exec("su");
-			}else{
+			} else {
 				process = Runtime.getRuntime().exec("sh");
 			}
 			errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 			reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
 			writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(process.getOutputStream())));
 
-			if(commands!=null){
-				for(String command : commands){
+			if (commands != null) {
+				for (String command : commands) {
 					writer.println(command);
 					writer.flush();
 				}
@@ -39,40 +35,51 @@ public class RootUtils {
 				writer.flush();
 			}
 			String tmp = null;
-			while((tmp = errorReader.readLine())!= null){
-				System.out.println(new String(tmp.getBytes("")));
+			System.out.println("----------------------error-------------------------------");
+			while ((tmp = errorReader.readLine()) != null) {
+				System.out.println("===" + tmp + "===");
+				flag++;
 			}
 			System.out.println("-----------------------------------------------------");
-			while((tmp = reader.readLine())!= null){
-				System.out.println(tmp);
+			while ((tmp = reader.readLine()) != null) {
+				System.out.println("===" + tmp + "===");
 			}
 			process.waitFor();
 
 			errorReader.close();
 			reader.close();
 			writer.close();
-		}catch (IOException e){
+		} catch (Exception e) {
 			e.printStackTrace();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+			flag = -1;
 		} finally {
 			try {
-				if(errorReader != null){
+				if (errorReader != null) {
 					errorReader.close();
 				}
-				if(reader != null){
+				if (reader != null) {
 					reader.close();
 				}
-				if(writer != null){
+				if (writer != null) {
 					writer.close();
 				}
 			} catch (IOException e) {
 				e.printStackTrace();
+				flag = -1;
 			}
+			return flag;
 		}
 	}
 
-	public static void main(String[] args){
-		runCommand(new String[]{"ls","ls -al"},false);
+	public static int mountSystemAsRW() {
+		return runCommand(new String[]{"mount -o remount,rw /system"}, true);
+	}
+
+	public static int mountSystemAsRO() {
+		return runCommand(new String[]{"mount -o remount,ro /system"}, true);
+	}
+
+	public static void main(String[] args) {
+		runCommand(new String[]{"ls", "ls -al"}, false);
 	}
 }

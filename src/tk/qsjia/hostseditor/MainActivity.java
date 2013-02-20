@@ -1,6 +1,5 @@
 package tk.qsjia.hostseditor;
 
-import tk.qsjia.hostseditor.fragment.*;
 import android.app.ActionBar;
 import android.app.FragmentTransaction;
 import android.os.Bundle;
@@ -9,16 +8,21 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
+import android.view.Window;
+import tk.qsjia.hostseditor.fragment.CurrentFragment;
+import tk.qsjia.hostseditor.fragment.CustomFragment;
+import tk.qsjia.hostseditor.fragment.MainFragment;
+import tk.qsjia.hostseditor.fragment.RemoteFragment;
 
 public class MainActivity extends FragmentActivity implements
 		ActionBar.TabListener {
 
 	@Override
 	public boolean onSearchRequested() {
-	     Bundle appData = new Bundle();
-	     appData.putBoolean("aa", true);
-	     startSearch(null, false, appData, false);
-	     return true;
+		Bundle appData = new Bundle();
+		appData.putBoolean("aa", true);
+		startSearch(null, false, appData, false);
+		return true;
 	}
 
 	/**
@@ -39,6 +43,9 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
+
 		setContentView(R.layout.main);
 		// Create the adapter that will return a fragment for each of the three
 		// primary sections
@@ -82,12 +89,12 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public void onTabUnselected(ActionBar.Tab tab,
-			FragmentTransaction fragmentTransaction) {
+								FragmentTransaction fragmentTransaction) {
 	}
 
 	@Override
 	public void onTabSelected(ActionBar.Tab tab,
-			FragmentTransaction fragmentTransaction) {
+							  FragmentTransaction fragmentTransaction) {
 		// When the given tab is selected, switch to the corresponding page in
 		// the ViewPager.
 		mViewPager.setCurrentItem(tab.getPosition());
@@ -95,7 +102,7 @@ public class MainActivity extends FragmentActivity implements
 
 	@Override
 	public void onTabReselected(ActionBar.Tab tab,
-			FragmentTransaction fragmentTransaction) {
+								FragmentTransaction fragmentTransaction) {
 	}
 
 	/**

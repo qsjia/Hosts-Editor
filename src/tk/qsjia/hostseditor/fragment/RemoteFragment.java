@@ -1,33 +1,29 @@
 package tk.qsjia.hostseditor.fragment;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import android.widget.*;
-import tk.qsjia.hostseditor.R;
-import tk.qsjia.hostseditor.util.DBHelper;
-import tk.qsjia.hostseditor.util.NetworkUtils;
 import android.app.AlertDialog;
 import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.database.Cursor;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.InputType;
-import android.text.TextUtils;
 import android.util.SparseBooleanArray;
-import android.view.ActionMode;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
+import android.view.*;
+import android.widget.*;
 import android.widget.SearchView.OnQueryTextListener;
+import tk.qsjia.hostseditor.R;
+import tk.qsjia.hostseditor.util.DBHelper;
+import tk.qsjia.hostseditor.util.NetworkUtils;
+import tk.qsjia.hostseditor.util.StringUtils;
+
+import java.lang.reflect.Field;
+import java.text.DateFormat;
+import java.util.Date;
 
 public class RemoteFragment extends ListFragment implements OnQueryTextListener {
 	@Override
@@ -39,36 +35,45 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 	private DBHelper helper;
 	private SimpleCursorAdapter adapter;
 	private Cursor cursor;
-	private List<String> selectedIds = new ArrayList<String>();
+	private ConnectivityManager connectivityManager;
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
 		this.setHasOptionsMenu(true);
+
+		connectivityManager = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+
 		helper = new DBHelper(getActivity());
 		// LoaderManager
 		cursor = helper.getReadableDatabase().query(
 				DBHelper.REMOTE_TABLE_NAME,
-				new String[] { "_id", "url", "local_date", "remote_date",
-						"used" }, null, null, null, null, null);
+				new String[]{"_id", "url", "local_file", "local_date", "remote_date",
+						"used"}, null, null, null, null, null);
 		adapter = new SimpleCursorAdapter(getActivity(),
-				R.layout.url_list_item, cursor, new String[] { "url",
-						"local_date", "remote_date" }, new int[] {
-						R.id.item_url, R.id.item_local_date,
-						R.id.item_remote_date },
+				R.layout.url_list_item, cursor, new String[]{"url",
+				"local_date", "remote_date"}, new int[]{
+				R.id.item_url, R.id.item_local_date,
+				R.id.item_remote_date},
 				SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER);
 		adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
 
 			@Override
 			public boolean setViewValue(View view, Cursor cursor,
-					int columnIndex) {
+										int columnIndex) {
 				if ("url".equals(cursor.getColumnName(columnIndex))) {
 					CheckBox checkBox = (CheckBox) view;
 					checkBox.setText(cursor.getString(columnIndex));
-					if (selectedIds.contains(cursor.getString(0))) {
+					if (cursor.getLong(cursor.getColumnIndex("used")) == 1) {
 						checkBox.setChecked(true);
 					} else {
 						checkBox.setChecked(false);
+					}
+					return true;
+				} else if ("local_date".equals(cursor.getColumnName(columnIndex)) ||
+						"remote_date".equals(cursor.getColumnName(columnIndex))) {
+					if (cursor.getLong(columnIndex) != 0) {
+						((TextView) view).setText(DateFormat.getDateInstance().format(new Date(cursor.getLong(columnIndex))));
 					}
 					return true;
 				}
@@ -80,8 +85,8 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			public Cursor runQuery(CharSequence constraint) {
 				return helper.getReadableDatabase().query(
 						DBHelper.REMOTE_TABLE_NAME,
-						new String[] { "_id", "url", "local_date", "remote_date",
-								"used" }, "url like ?", new String[]{"%"+constraint+"%"}, null, null, null);
+						new String[]{"_id", "url", "local_file", "local_date", "remote_date",
+								"used"}, "url like ?", new String[]{"%" + constraint + "%"}, null, null, null);
 			}
 		});
 		setListAdapter(adapter);
@@ -112,7 +117,7 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 						urlEditText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
 						SparseBooleanArray sba = getListView().getCheckedItemPositions();
 						int position = sba.keyAt((sba.indexOfValue(true)));
-						Cursor c = (Cursor)getListView().getItemAtPosition(position);
+						Cursor c = (Cursor) getListView().getItemAtPosition(position);
 						urlEditText.setText(c.getString(c.getColumnIndex("url")));
 						new AlertDialog.Builder(getActivity())
 								.setTitle("修改")
@@ -122,14 +127,36 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 
 											@Override
 											public void onClick(DialogInterface dialog,
-													int which) {
-												String url = urlEditText.getText()
-														.toString();
-												if (!TextUtils.isEmpty(url)) {
-													new NetWorkAsyncTask().execute(url, ids[0]+"");
+																int which) {
+												String url = urlEditText.getText().toString();
+												if (StringUtils.isUrl(url)) {
+													new NetWorkAsyncTask().execute(url, ids[0] + "");
+												} else {
+													Toast.makeText(getActivity(), "URL格式错误！", Toast.LENGTH_SHORT).show();
+													try {
+														Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+														field.setAccessible(true);
+														field.set(dialog, false);
+													} catch (NoSuchFieldException e) {
+														e.printStackTrace();
+													} catch (IllegalAccessException e) {
+														e.printStackTrace();
+													}
 												}
 											}
-										}).setNegativeButton("取消", null).show();
+										})
+								.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+									@Override
+									public void onClick(DialogInterface dialog, int which) {
+										try {
+											Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+											field.setAccessible(true);
+											field.set(dialog, true);
+										} catch (Exception e) {
+											e.printStackTrace();
+										}
+									}
+								}).show();
 						return true;
 					default:
 						return false;
@@ -156,10 +183,10 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 
 			@Override
 			public void onItemCheckedStateChanged(ActionMode mode,
-					int position, long id, boolean checked) {
-				if(getListView().getCheckedItemIds().length>1){
+												  int position, long id, boolean checked) {
+				if (getListView().getCheckedItemIds().length > 1) {
 					mode.getMenu().getItem(0).setVisible(false);
-				}else{
+				} else {
 					mode.getMenu().getItem(0).setVisible(true);
 				}
 			}
@@ -171,13 +198,17 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 	public void onListItemClick(ListView l, View v, int position, long id) {
 		super.onListItemClick(l, v, position, id);
 		CheckBox checkBox = (CheckBox) v.findViewById(R.id.item_url);
+		ContentValues values = new ContentValues();
 		if (checkBox.isChecked()) {
-			checkBox.setChecked(false);
-			selectedIds.remove("" + id);
+//			checkBox.setChecked(false);
+			values.put("used", 2);
+			helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id + ""});
 		} else {
-			checkBox.setChecked(true);
-			selectedIds.add("" + id);
+//			checkBox.setChecked(true);
+			values.put("used", 1);
+			helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id + ""});
 		}
+		refreshData();
 	}
 
 	@Override
@@ -210,25 +241,48 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 
 									@Override
 									public void onClick(DialogInterface dialog,
-											int which) {
+														int which) {
 										String url = urlEditText.getText()
 												.toString();
-										if (!TextUtils.isEmpty(url)) {
+										if (StringUtils.isUrl(url)) {
 											new NetWorkAsyncTask().execute(url);
+										} else {
+											Toast.makeText(getActivity(), "URL格式错误！", Toast.LENGTH_SHORT).show();
+											try {
+												Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+												field.setAccessible(true);
+												field.set(dialog, false);
+											} catch (NoSuchFieldException e) {
+												e.printStackTrace();
+											} catch (IllegalAccessException e) {
+												e.printStackTrace();
+											}
 										}
 									}
-								}).setNegativeButton("取消", null).show();
+								})
+						.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+							@Override
+							public void onClick(DialogInterface dialog, int which) {
+								try {
+									Field field = dialog.getClass().getSuperclass().getDeclaredField("mShowing");
+									field.setAccessible(true);
+									field.set(dialog, true);
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
+						}).show();
 				return true;
 			default:
 				return false;
 		}
 	}
 
-	void refreshData(){
+	void refreshData() {
 		cursor = helper.getReadableDatabase().query(
 				DBHelper.REMOTE_TABLE_NAME,
-				new String[] { "_id", "url", "local_date",
-						"remote_date", "used" }, null, null,
+				new String[]{"_id", "url", "local_file", "local_date",
+						"remote_date", "used"}, null, null,
 				null, null, null);
 		adapter.changeCursor(cursor);
 		adapter.notifyDataSetChanged();
@@ -236,8 +290,8 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 
 	@Override
 	public boolean onQueryTextChange(String newText) {
-		if(getListAdapter()!=null){
-			((CursorAdapter)getListAdapter()).getFilter().filter(newText);
+		if (getListAdapter() != null) {
+			((CursorAdapter) getListAdapter()).getFilter().filter(newText);
 		}
 		return true;
 	}
@@ -254,11 +308,16 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 
 		@Override
 		protected Long doInBackground(String... params) {
+			long ret = 0;
 			this.url = params[0];
-			if(params.length == 2){
+			if (params.length == 2) {
 				id = params[1];
 			}
-			return NetworkUtils.getModifyDate(url);
+			NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
+			if (networkInfo != null && networkInfo.isConnected()) {
+				ret = NetworkUtils.getModifyDate(url);
+			}
+			return ret;
 		}
 
 		@Override
@@ -266,22 +325,22 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			if (result == -1) {
 				new AlertDialog.Builder(getActivity()).setTitle("URL格式错误！")
 						.setPositiveButton("确定", null).show();
+				result = 0l;
 			} else if (result == -2) {
 				new AlertDialog.Builder(getActivity()).setTitle("网络连接错误！")
 						.setPositiveButton("确定", null).show();
-			} else {
-				DateFormat fmt = SimpleDateFormat.getDateTimeInstance();
-				ContentValues values = new ContentValues();
-				values.put("url", url);
-				values.put("remote_date", fmt.format(new Date(result)));
-				if(id == null){
-					values.put("used", 0);
-					helper.getWritableDatabase().insert(DBHelper.REMOTE_TABLE_NAME, null, values);
-				}else{
-					helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id});
-				}
-				refreshData();
+				result = 0l;
 			}
+			ContentValues values = new ContentValues();
+			values.put("url", url);
+			values.put("remote_date", result);
+			if (id == null) {
+				values.put("used", 0);
+				helper.getWritableDatabase().insert(DBHelper.REMOTE_TABLE_NAME, null, values);
+			} else {
+				helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id});
+			}
+			refreshData();
 		}
 
 	}

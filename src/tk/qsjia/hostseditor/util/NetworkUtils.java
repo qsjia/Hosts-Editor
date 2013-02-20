@@ -1,7 +1,9 @@
 package tk.qsjia.hostseditor.util;
 
 import java.io.*;
-import java.net.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class NetworkUtils {
 	public static long getModifyDate(String urlStr) {
@@ -9,7 +11,7 @@ public class NetworkUtils {
 			URL url = new URL(urlStr);
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
 			if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
-				return connection.getLastModified();
+				return connection.getLastModified() == 0 ? connection.getDate() : connection.getLastModified();
 			} else {
 				return -3;
 			}

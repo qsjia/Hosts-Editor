@@ -1,13 +1,9 @@
 package tk.qsjia.hostseditor.util;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
 import android.os.Environment;
+
+import java.io.*;
+import java.util.*;
 
 /**
  * Created with IntelliJ IDEA.
@@ -17,6 +13,12 @@ import android.os.Environment;
  * To change this template use File | Settings | File Templates.
  */
 public class HostsUtils {
+	/**
+	 * 读取hosts文件内容
+	 *
+	 * @param file
+	 * @return
+	 */
 	public static List<Map<String, String>> analysisHostsFile(File file) {
 		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
 		try {
@@ -66,6 +68,13 @@ public class HostsUtils {
 		return list;
 	}
 
+	/**
+	 * 生成hosts文件
+	 *
+	 * @param data
+	 * @param dirName
+	 * @return
+	 */
 	public static File makeHostsFile(List<Map<String, String>> data, String dirName) {
 		File file = null;
 		try {
