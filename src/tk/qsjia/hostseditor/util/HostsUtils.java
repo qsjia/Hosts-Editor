@@ -68,6 +68,29 @@ public class HostsUtils {
 		return list;
 	}
 
+	public static List<Map<String, String>> analysisHostsFromText(String text){
+		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		String[] lines = text.split("\n");
+		int index = 0;
+		for(String line : lines){
+			if (!line.startsWith("#")) {
+				String[] datas = line.split("\\s+");
+				int j = datas.length;
+				if (j >= 2) {
+					for (int i = 1; i < datas.length; i++) {
+						Map<String, String> map = new HashMap<String, String>();
+						map.put("ip", datas[0]);
+						map.put("host", datas[i].toLowerCase(Locale.US));
+						map.put("index", index + "");
+						list.add(map);
+						index++;
+					}
+				}
+			}
+		}
+		return list;
+	}
+
 	/**
 	 * 生成hosts文件
 	 *

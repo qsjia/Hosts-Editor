@@ -4,10 +4,16 @@
         android:orderInCategory="100"
         android:icon="@android:drawable/ic_menu_add"
         android:showAsAction="ifRoom|withText" />
-    <item android:id="@+id/menu_remote_search"
-        android:actionViewClass="android.widget.SearchView"
-        android:icon="@android:drawable/ic_menu_search"
-        android:orderInCategory="100"
-        android:showAsAction="ifRoom|collapseActionView"
-        android:title="@string/menu_search"/>
+	<item android:id="@+id/menu_remote_search"
+		  android:actionViewClass="android.widget.SearchView"
+		  android:icon="@android:drawable/ic_menu_search"
+		  android:orderInCategory="100"
+		  android:showAsAction="ifRoom|collapseActionView"
+		  android:title="@string/menu_search"/>
+	<item android:id="@+id/menu_check_update"
+		  android:showAsAction="never"
+		  android:title="@string/menu_check_update"/>
+	<item android:id="@+id/menu_add_url_via_qrcode"
+		  android:showAsAction="never"
+		  android:title="@string/menu_add_url_via_qrcode"/>
 </menu>

@@ -10,6 +10,8 @@ public class NetworkUtils {
 		try {
 			URL url = new URL(urlStr);
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+			connection.setConnectTimeout(3000);
+			connection.connect();
 			if (connection.getResponseCode() == HttpURLConnection.HTTP_OK) {
 				return connection.getLastModified() == 0 ? connection.getDate() : connection.getLastModified();
 			} else {

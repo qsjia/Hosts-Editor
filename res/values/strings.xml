@@ -14,6 +14,10 @@
     <string name="menu_add">增加</string>
     <string name="menu_delete">删除</string>
     <string name="search_hint">搜索</string>
-    <string name="menu_edit">编辑</string>
+	<string name="menu_edit">编辑</string>
+	<string name="menu_check_update">检查更新</string>
+	<string name="menu_add_url_via_qrcode">扫描二维码添加地址</string>
+	<string name="menu_add_items_via_qrcode">扫描二维码添加条目</string>
+	<string name="menu_share">通过二维码分享</string>
 	<string name="use_sequence">使用数字或字母序列替换Host中的“%%”</string>
 </resources>

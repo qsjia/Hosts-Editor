@@ -5,6 +5,7 @@ import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -16,10 +17,10 @@ import android.util.SparseBooleanArray;
 import android.view.*;
 import android.widget.*;
 import android.widget.SearchView.OnQueryTextListener;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import tk.qsjia.hostseditor.R;
-import tk.qsjia.hostseditor.util.DBHelper;
-import tk.qsjia.hostseditor.util.NetworkUtils;
-import tk.qsjia.hostseditor.util.StringUtils;
+import tk.qsjia.hostseditor.util.*;
 
 import java.lang.reflect.Field;
 import java.text.DateFormat;
@@ -97,6 +98,9 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			@Override
 			public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
 				final long[] ids = getListView().getCheckedItemIds();
+				SparseBooleanArray sba = getListView().getCheckedItemPositions();
+				int position = sba.keyAt((sba.indexOfValue(true)));
+				Cursor c = (Cursor) getListView().getItemAtPosition(position);
 				switch (item.getItemId()) {
 					case R.id.menu_delete:
 						StringBuffer whereStr = new StringBuffer();
@@ -115,9 +119,6 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 						final EditText urlEditText = new EditText(getActivity());
 						urlEditText.setHint("远程hosts文件地址");
 						urlEditText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-						SparseBooleanArray sba = getListView().getCheckedItemPositions();
-						int position = sba.keyAt((sba.indexOfValue(true)));
-						Cursor c = (Cursor) getListView().getItemAtPosition(position);
 						urlEditText.setText(c.getString(c.getColumnIndex("url")));
 						new AlertDialog.Builder(getActivity())
 								.setTitle("修改")
@@ -158,6 +159,8 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 									}
 								}).show();
 						return true;
+					case R.id.menu_share:
+						QRCodeUtils.encodeBarcode("TEXT_TYPE", c.getString(c.getColumnIndex("url")), RemoteFragment.this);
 					default:
 						return false;
 				}
@@ -186,8 +189,10 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 												  int position, long id, boolean checked) {
 				if (getListView().getCheckedItemIds().length > 1) {
 					mode.getMenu().getItem(0).setVisible(false);
+					mode.getMenu().getItem(1).setVisible(false);
 				} else {
 					mode.getMenu().getItem(0).setVisible(true);
+					mode.getMenu().getItem(1).setVisible(true);
 				}
 			}
 
@@ -273,6 +278,12 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 							}
 						}).show();
 				return true;
+			case R.id.menu_check_update:
+				new CheckUpdateAsyncTask().execute();
+				return true;
+			case R.id.menu_add_url_via_qrcode:
+				QRCodeUtils.scanQrCode(this);
+				return true;
 			default:
 				return false;
 		}
@@ -286,6 +297,21 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 				null, null, null);
 		adapter.changeCursor(cursor);
 		adapter.notifyDataSetChanged();
+	}
+
+	@Override
+	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+		IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
+		if (scanResult != null && scanResult.getContents()!=null) {
+			String url = scanResult.getContents();
+			if(StringUtils.isUrl(url)){
+				new NetWorkAsyncTask().execute(url);
+			}else{
+				Toast.makeText(getActivity(), "URL格式错误！", Toast.LENGTH_SHORT).show();
+			}
+		}else{
+			Toast.makeText(getActivity(), "抱歉，无法获得二维码地址！", Toast.LENGTH_SHORT).show();
+		}
 	}
 
 	@Override
@@ -342,7 +368,42 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			}
 			refreshData();
 		}
+	}
 
+	class CheckUpdateAsyncTask extends AsyncTask<Void, Void, Boolean> {
+		@Override
+		protected void onPreExecute() {
+			getActivity().setProgressBarIndeterminateVisibility(true);
+		}
+
+		@Override
+		protected Boolean doInBackground(Void... params) {
+			cursor = helper.getReadableDatabase().query(
+					DBHelper.REMOTE_TABLE_NAME,
+					new String[]{"_id", "url", "local_date", "remote_date",
+							"used"}, null, null, null, null, null);
+			boolean hasUpdated = false;
+			for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
+				long remoteDate = cursor.getLong(cursor.getColumnIndex("remote_date"));
+				long newRemoteDate = NetworkUtils.getModifyDate(cursor.getString(cursor.getColumnIndex("url")));
+				if(newRemoteDate>remoteDate){
+					hasUpdated = true;
+					ContentValues values = new ContentValues();
+					values.put("remote_date", newRemoteDate);
+					helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{cursor.getString(cursor.getColumnIndex("_id"))});
+				}
+			}
+			cursor.close();
+			return hasUpdated;
+		}
+
+		@Override
+		protected void onPostExecute(Boolean hasUpdated) {
+			if(hasUpdated){
+				refreshData();
+			}
+			getActivity().setProgressBarIndeterminateVisibility(false);
+		}
 	}
 
 }

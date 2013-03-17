@@ -5,18 +5,25 @@ import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.util.SparseBooleanArray;
 import android.view.*;
 import android.widget.*;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
 import tk.qsjia.hostseditor.R;
 import tk.qsjia.hostseditor.util.DBHelper;
+import tk.qsjia.hostseditor.util.HostsUtils;
+import tk.qsjia.hostseditor.util.QRCodeUtils;
 import tk.qsjia.hostseditor.util.StringUtils;
 
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class CustomFragment extends ListFragment implements SearchView.OnQueryTextListener {
 
@@ -312,8 +319,37 @@ public class CustomFragment extends ListFragment implements SearchView.OnQueryTe
 						})
 						.show();
 				return true;
+			case R.id.menu_add_items_via_qrcode:
+				QRCodeUtils.scanQrCode(this);
+				return true;
 			default:
 				return false;
+		}
+	}
+
+	@Override
+	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+		IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
+		if (scanResult != null && scanResult.getContents()!=null) {
+			String text = scanResult.getContents();
+			List<Map<String, String>> items = HostsUtils.analysisHostsFromText(text);
+			helper.getWritableDatabase().beginTransaction();
+			for(Map<String, String> item : items){
+				String ip = item.get("ip");
+				String host = item.get("host");
+				if(StringUtils.isIP(ip) && StringUtils.isHost(host)){
+					ContentValues values = new ContentValues();
+					values.put("ip", ip);
+					values.put("host", host);
+					values.put("used", "2");
+					helper.getWritableDatabase().insert(DBHelper.CUSTOM_TABLE_NAME, null, values);
+				}
+			}
+			helper.getWritableDatabase().setTransactionSuccessful();
+			helper.getWritableDatabase().endTransaction();
+			refreshData();
+		}else{
+			Toast.makeText(getActivity(), "抱歉，无法读取二维码数据！", Toast.LENGTH_SHORT).show();
 		}
 	}
 

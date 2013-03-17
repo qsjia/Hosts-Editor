@@ -63,9 +63,11 @@ public class MainFragment extends Fragment {
 			if (cacheDir == null) {
 				return -1l;
 			}
+			//启用自定义hosts
 			if ("enable".equals(params[0])) {
 				int flag = RootUtils.mountSystemAsRW();
 				if (flag == 0) {
+					//获取远程hosts文件
 					cursor = helper.getReadableDatabase().query(
 							DBHelper.REMOTE_TABLE_NAME,
 							new String[]{"_id", "url", "local_file", "local_date", "remote_date",
@@ -93,6 +95,7 @@ public class MainFragment extends Fragment {
 					cursor.close();
 					System.out.println("remote count = " + cursor.getCount());
 
+					//自定义的hosts条目
 					cursor = helper.getReadableDatabase().query(
 							DBHelper.CUSTOM_TABLE_NAME,
 							new String[]{"_id", "ip", "host", "used"}, "used=?", new String[]{"1"}, null, null, null);
@@ -105,14 +108,17 @@ public class MainFragment extends Fragment {
 					}
 					cursor.close();
 
-					String hostsFileName = HostsUtils.makeHostsFile(hosts, cacheDir.getAbsolutePath()).getAbsolutePath();
-					RootUtils.runCommand(new String[]{"rm -rf /system/etc/hosts", "mv " + hostsFileName + " /system/etc/"}, true);
+					File newHostsFile = HostsUtils.makeHostsFile(hosts, cacheDir.getAbsolutePath());
+					if(newHostsFile!=null){
+						String hostsFileName = newHostsFile.getAbsolutePath();
+						RootUtils.runCommand(new String[]{"rm -rf /system/etc/hosts", "mv " + hostsFileName + " /system/etc/"}, true);
+					}
 					RootUtils.mountSystemAsRO();
 				}
-			} else if ("disable".equals(params[0])) {
+			} else if ("disable".equals(params[0])) {//禁用自定义hosts,还原默认hosts文件
 				int flag = RootUtils.mountSystemAsRW();
 				if (flag == 0) {
-					RootUtils.runCommand(new String[]{"rm -rf /system/etc/hosts", "touch /system/etc/hosts"}, true);
+					RootUtils.runCommand(new String[]{"rm -f /system/etc/hosts", "echo \"127.0.0.1 localhost\" /system/etc/hosts"}, true);
 					RootUtils.mountSystemAsRO();
 				}
 			}
