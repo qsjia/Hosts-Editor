@@ -34,6 +34,7 @@ public class NetworkUtils {
 		try {
 			URL url = new URL(urlStr);
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            connection.setConnectTimeout(3000);
 			if (connection.getResponseCode() == HttpURLConnection.HTTP_OK && "text/plain".equals(connection.getContentType())) {
 				is = connection.getInputStream();
 			}

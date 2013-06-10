@@ -151,6 +151,17 @@ public class CustomFragment extends ListFragment implements SearchView.OnQueryTe
 							mode.finish();
 							return true;
 						case R.id.menu_delete:
+							StringBuffer whereStr = new StringBuffer();
+							whereStr.append("_id in (");
+							for (long id : ids) {
+								whereStr.append(id + ",");
+							}
+							helper.getWritableDatabase().delete(
+									DBHelper.CUSTOM_TABLE_NAME,
+									whereStr.toString().substring(0,
+											whereStr.length() - 1)
+											+ ")", null);
+							refreshData();
 							return true;
 					}
 				}

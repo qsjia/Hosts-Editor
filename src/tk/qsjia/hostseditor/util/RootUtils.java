@@ -35,14 +35,12 @@ public class RootUtils {
 				writer.flush();
 			}
 			String tmp = null;
-			System.out.println("----------------------error-------------------------------");
 			while ((tmp = errorReader.readLine()) != null) {
-				System.out.println("===" + tmp + "===");
+				System.out.println("error:" + tmp);
 				flag++;
 			}
-			System.out.println("-----------------------------------------------------");
 			while ((tmp = reader.readLine()) != null) {
-				System.out.println("===" + tmp + "===");
+				System.out.println("info:" + tmp);
 			}
 			process.waitFor();
 

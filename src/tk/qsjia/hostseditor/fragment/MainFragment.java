@@ -111,14 +111,19 @@ public class MainFragment extends Fragment {
 					File newHostsFile = HostsUtils.makeHostsFile(hosts, cacheDir.getAbsolutePath());
 					if(newHostsFile!=null){
 						String hostsFileName = newHostsFile.getAbsolutePath();
-						RootUtils.runCommand(new String[]{"rm -rf /system/etc/hosts", "mv " + hostsFileName + " /system/etc/"}, true);
+						RootUtils.runCommand(new String[]{
+                                "cat " + hostsFileName + " > /system/etc/hosts",
+                                "chmod 0644 /system/etc/hosts",
+                                "rm -f "+ hostsFileName}, true);
 					}
 					RootUtils.mountSystemAsRO();
 				}
 			} else if ("disable".equals(params[0])) {//禁用自定义hosts,还原默认hosts文件
 				int flag = RootUtils.mountSystemAsRW();
 				if (flag == 0) {
-					RootUtils.runCommand(new String[]{"rm -f /system/etc/hosts", "echo \"127.0.0.1 localhost\" /system/etc/hosts"}, true);
+					RootUtils.runCommand(new String[]{
+                            "echo \"127.0.0.1 localhost\" > /system/etc/hosts",
+                            "chmod 0644 /system/etc/hosts"}, true);
 					RootUtils.mountSystemAsRO();
 				}
 			}
