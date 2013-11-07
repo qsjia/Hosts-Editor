@@ -11,12 +11,17 @@
 # generated files
 bin/
 gen/
+build/
 
 # Local configuration file (sdk path, etc)
 local.properties
 .classpath
 .project
+local.properties
 
-# idea
+# idea/android studio
 .idea/
 Hosts-Editor.iml
+
+#gradle
+.gradle/

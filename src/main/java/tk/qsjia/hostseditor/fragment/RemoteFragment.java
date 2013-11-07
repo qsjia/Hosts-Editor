@@ -346,7 +346,13 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			return ret;
 		}
 
-		@Override
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            getActivity().setProgressBarIndeterminateVisibility(true);
+        }
+
+        @Override
 		protected void onPostExecute(Long result) {
 			if (result == -1) {
 				new AlertDialog.Builder(getActivity()).setTitle("URL格式错误！")
@@ -367,6 +373,7 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 				helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id});
 			}
 			refreshData();
+            getActivity().setProgressBarIndeterminateVisibility(false);
 		}
 	}
 

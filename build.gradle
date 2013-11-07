@@ -1,0 +1,33 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:0.6.+'
+    }
+}
+apply plugin: 'android'
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+android {
+    compileSdkVersion 18
+    buildToolsVersion "18.0.1"
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 18
+    }
+}
+
+tasks.withType(Compile){
+    options.encoding="utf-8";
+}
+
+dependencies {
+    compile 'com.android.support:support-v4:18.0.+'
+}
