@@ -1,11 +1,17 @@
 package tk.qsjia.hostseditor.util;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
 public class NetworkUtils {
+
 	public static long getModifyDate(String urlStr) {
 		try {
 			URL url = new URL(urlStr);
@@ -34,7 +40,7 @@ public class NetworkUtils {
 		try {
 			URL url = new URL(urlStr);
 			HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            connection.setConnectTimeout(3000);
+			connection.setConnectTimeout(3000);
 			if (connection.getResponseCode() == HttpURLConnection.HTTP_OK && "text/plain".equals(connection.getContentType())) {
 				is = connection.getInputStream();
 			}

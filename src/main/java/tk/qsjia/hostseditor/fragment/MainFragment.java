@@ -1,5 +1,6 @@
 package tk.qsjia.hostseditor.fragment;
 
+import android.app.ProgressDialog;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.os.AsyncTask;
@@ -10,11 +11,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
-import tk.qsjia.hostseditor.R;
-import tk.qsjia.hostseditor.util.DBHelper;
-import tk.qsjia.hostseditor.util.HostsUtils;
-import tk.qsjia.hostseditor.util.NetworkUtils;
-import tk.qsjia.hostseditor.util.RootUtils;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -22,11 +18,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import tk.qsjia.hostseditor.R;
+import tk.qsjia.hostseditor.util.DBHelper;
+import tk.qsjia.hostseditor.util.HostsUtils;
+import tk.qsjia.hostseditor.util.NetworkUtils;
+import tk.qsjia.hostseditor.util.RootUtils;
+
 public class MainFragment extends Fragment {
 	private Button enableBtn;
 	private Button disableBtn;
 	private DBHelper helper;
 	private Cursor cursor;
+	private ProgressDialog progressDialog;
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -109,12 +112,12 @@ public class MainFragment extends Fragment {
 					cursor.close();
 
 					File newHostsFile = HostsUtils.makeHostsFile(hosts, cacheDir.getAbsolutePath());
-					if(newHostsFile!=null){
+					if (newHostsFile != null) {
 						String hostsFileName = newHostsFile.getAbsolutePath();
 						RootUtils.runCommand(new String[]{
-                                "cat " + hostsFileName + " > /system/etc/hosts",
-                                "chmod 0644 /system/etc/hosts",
-                                "rm -f "+ hostsFileName}, true);
+								"cat " + hostsFileName + " > /system/etc/hosts",
+								"chmod 0644 /system/etc/hosts",
+								"rm -f " + hostsFileName}, true);
 					}
 					RootUtils.mountSystemAsRO();
 				}
@@ -122,8 +125,8 @@ public class MainFragment extends Fragment {
 				int flag = RootUtils.mountSystemAsRW();
 				if (flag == 0) {
 					RootUtils.runCommand(new String[]{
-                            "echo \"127.0.0.1 localhost\" > /system/etc/hosts",
-                            "chmod 0644 /system/etc/hosts"}, true);
+							"echo \"127.0.0.1 localhost\" > /system/etc/hosts",
+							"chmod 0644 /system/etc/hosts"}, true);
 					RootUtils.mountSystemAsRO();
 				}
 			}
@@ -132,7 +135,7 @@ public class MainFragment extends Fragment {
 
 		@Override
 		protected void onPreExecute() {
-			getActivity().setProgressBarIndeterminateVisibility(true);
+			progressDialog = ProgressDialog.show(getActivity(), "应用Hosts文件", "请稍候。。。");
 		}
 
 		@Override
@@ -140,7 +143,7 @@ public class MainFragment extends Fragment {
 			if (result == -1) {
 				Toast.makeText(getActivity(), "存储卡不可用！", Toast.LENGTH_SHORT).show();
 			}
-			getActivity().setProgressBarIndeterminateVisibility(false);
+			progressDialog.dismiss();
 		}
 	}
 }

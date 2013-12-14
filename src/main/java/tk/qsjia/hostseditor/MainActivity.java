@@ -8,7 +8,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
-import android.view.Window;
+
 import tk.qsjia.hostseditor.fragment.CurrentFragment;
 import tk.qsjia.hostseditor.fragment.CustomFragment;
 import tk.qsjia.hostseditor.fragment.MainFragment;
@@ -43,8 +43,6 @@ public class MainActivity extends FragmentActivity implements
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-
-		requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 
 		setContentView(R.layout.main);
 		// Create the adapter that will return a fragment for each of the three

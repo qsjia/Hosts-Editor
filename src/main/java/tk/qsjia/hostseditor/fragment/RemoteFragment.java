@@ -1,6 +1,7 @@
 package tk.qsjia.hostseditor.fragment;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.ContentValues;
 import android.content.Context;
@@ -14,17 +15,35 @@ import android.os.Bundle;
 import android.support.v4.app.ListFragment;
 import android.text.InputType;
 import android.util.SparseBooleanArray;
-import android.view.*;
-import android.widget.*;
+import android.view.ActionMode;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.AbsListView;
+import android.widget.CheckBox;
+import android.widget.CursorAdapter;
+import android.widget.EditText;
+import android.widget.FilterQueryProvider;
+import android.widget.ListView;
+import android.widget.SearchView;
 import android.widget.SearchView.OnQueryTextListener;
+import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
+import android.widget.Toast;
+
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
-import tk.qsjia.hostseditor.R;
-import tk.qsjia.hostseditor.util.*;
 
 import java.lang.reflect.Field;
 import java.text.DateFormat;
 import java.util.Date;
+
+import tk.qsjia.hostseditor.R;
+import tk.qsjia.hostseditor.util.DBHelper;
+import tk.qsjia.hostseditor.util.NetworkUtils;
+import tk.qsjia.hostseditor.util.QRCodeUtils;
+import tk.qsjia.hostseditor.util.StringUtils;
 
 public class RemoteFragment extends ListFragment implements OnQueryTextListener {
 	@Override
@@ -37,6 +56,7 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 	private SimpleCursorAdapter adapter;
 	private Cursor cursor;
 	private ConnectivityManager connectivityManager;
+	private ProgressDialog progressDialog;
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
@@ -302,14 +322,14 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 	@Override
 	public void onActivityResult(int requestCode, int resultCode, Intent intent) {
 		IntentResult scanResult = IntentIntegrator.parseActivityResult(requestCode, resultCode, intent);
-		if (scanResult != null && scanResult.getContents()!=null) {
+		if (scanResult != null && scanResult.getContents() != null) {
 			String url = scanResult.getContents();
-			if(StringUtils.isUrl(url)){
+			if (StringUtils.isUrl(url)) {
 				new NetWorkAsyncTask().execute(url);
-			}else{
+			} else {
 				Toast.makeText(getActivity(), "URL格式错误！", Toast.LENGTH_SHORT).show();
 			}
-		}else{
+		} else {
 			Toast.makeText(getActivity(), "抱歉，无法获得二维码地址！", Toast.LENGTH_SHORT).show();
 		}
 	}
@@ -346,13 +366,12 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			return ret;
 		}
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            getActivity().setProgressBarIndeterminateVisibility(true);
-        }
+		@Override
+		protected void onPreExecute() {
+			progressDialog = ProgressDialog.show(getActivity(), "添加Url", "请稍候。。。");
+		}
 
-        @Override
+		@Override
 		protected void onPostExecute(Long result) {
 			if (result == -1) {
 				new AlertDialog.Builder(getActivity()).setTitle("URL格式错误！")
@@ -373,14 +392,14 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 				helper.getWritableDatabase().update(DBHelper.REMOTE_TABLE_NAME, values, "_id = ?", new String[]{id});
 			}
 			refreshData();
-            getActivity().setProgressBarIndeterminateVisibility(false);
+			progressDialog.dismiss();
 		}
 	}
 
-	class CheckUpdateAsyncTask extends AsyncTask<Void, Void, Boolean> {
+	class CheckUpdateAsyncTask extends AsyncTask<Void, String, Boolean> {
 		@Override
 		protected void onPreExecute() {
-			getActivity().setProgressBarIndeterminateVisibility(true);
+			progressDialog = ProgressDialog.show(getActivity(), "检查文件更新", "请稍候。。。");
 		}
 
 		@Override
@@ -392,8 +411,10 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 			boolean hasUpdated = false;
 			for (cursor.moveToFirst(); !cursor.isAfterLast(); cursor.moveToNext()) {
 				long remoteDate = cursor.getLong(cursor.getColumnIndex("remote_date"));
-				long newRemoteDate = NetworkUtils.getModifyDate(cursor.getString(cursor.getColumnIndex("url")));
-				if(newRemoteDate>remoteDate){
+				String url = cursor.getString(cursor.getColumnIndex("url"));
+				publishProgress(new String[]{url});
+				long newRemoteDate = NetworkUtils.getModifyDate(url);
+				if (newRemoteDate > remoteDate) {
 					hasUpdated = true;
 					ContentValues values = new ContentValues();
 					values.put("remote_date", newRemoteDate);
@@ -406,10 +427,15 @@ public class RemoteFragment extends ListFragment implements OnQueryTextListener 
 
 		@Override
 		protected void onPostExecute(Boolean hasUpdated) {
-			if(hasUpdated){
+			if (hasUpdated) {
 				refreshData();
 			}
-			getActivity().setProgressBarIndeterminateVisibility(false);
+			progressDialog.dismiss();
+		}
+
+		@Override
+		protected void onProgressUpdate(String... values) {
+			progressDialog.setMessage(values[0]);
 		}
 	}
 
