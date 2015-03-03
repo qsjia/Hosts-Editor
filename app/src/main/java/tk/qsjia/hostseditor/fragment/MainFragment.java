@@ -62,7 +62,7 @@ public class MainFragment extends Fragment {
 		@Override
 		protected Long doInBackground(String... params) {
 			List<Map<String, String>> hosts = new ArrayList<Map<String, String>>();
-			File cacheDir = getActivity().getExternalCacheDir();
+			File cacheDir = getActivity().getCacheDir();
 			if (cacheDir == null) {
 				return -1l;
 			}

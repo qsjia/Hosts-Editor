@@ -20,4 +20,8 @@
 	<string name="menu_add_items_via_qrcode">扫描二维码添加条目</string>
 	<string name="menu_share">通过二维码分享</string>
 	<string name="use_sequence">使用数字或字母序列替换Host中的“%%”</string>
+
+    <color name="primary">#ff4583ff</color>
+    <color name="primary_dark">#ff3a6ed6</color>
+    <color name="accent">#ff56c1ff</color>
 </resources>

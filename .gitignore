@@ -17,11 +17,10 @@ build/
 local.properties
 .classpath
 .project
-local.properties
 
 # idea/android studio
 .idea/
-Hosts-Editor.iml
+*.iml
 
 #gradle
 .gradle/
